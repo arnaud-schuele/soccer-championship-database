@@ -1,0 +1,587 @@
+-- Drop all tables, so that we can run the exercise from scratch (empty DB).
+ 
+DROP TABLE IF EXISTS matches CASCADE;
+DROP TABLE IF EXISTS lineups CASCADE;
+DROP TABLE IF EXISTS goals CASCADE;
+DROP TABLE IF EXISTS cards CASCADE;
+DROP TABLE IF EXISTS substitutes CASCADE; 
+DROP TABLE IF EXISTS rounds CASCADE;
+DROP TABLE IF EXISTS players CASCADE;
+DROP TABLE IF EXISTS teams CASCADE;
+DROP TABLE IF EXISTS stadiums CASCADE;
+  
+--------------------
+--Create the tables
+--------------------
+
+-- Create rounds
+CREATE TABLE rounds (
+    "id"    integer PRIMARY KEY,
+	name        text
+-- Taking the example of the Premier League, "name" refers to "Day 1", "Day 2", "Boxing Day" etc.
+-- "Rounds" were not included as an attribute of the table "matches", as it leaves more space to disclose 
+-- the relationship between "matches" and "rounds"; namely that a match has exactly one round, 
+-- while a round has at least one match (but potentially many matches).
+);
+
+-- Create stadiums
+CREATE TABLE stadiums (
+	"id" integer PRIMARY KEY,
+	"stadium_name"  varchar(40)
+);
+
+-- Create teams
+CREATE TABLE teams (
+	"id" integer PRIMARY KEY,
+	"club_name"  varchar(40),
+	"coach_name" varchar(40),
+	"stadium_id" integer REFERENCES stadiums (id) NOT NULL
+);
+
+-- Create matches
+CREATE TABLE matches (
+	"id" integer PRIMARY KEY,
+    "stadium_id" integer REFERENCES stadiums (id) NOT NULL,
+	"referee"      varchar(40),
+	"attendance"   integer,
+	-- Alternatively, we could have used a data type "timestemp", which combines both date and time. 
+	-- Given that question 3.1. specifically asks for the date, we keep them separate for more clarity.
+	"date"   date,
+	"time_kickoff" time,
+	--"Time" expresses the kick-off time. We assume that all matches will start at 12:30.
+	"time_end" time,
+	--For simplicity we assume that there is no break between the two match periods.
+	--Since all matches will start at 12:30, they will all end up at 14:00.
+	"home_team" integer REFERENCES teams (id) NOT NULL,
+	"away_team" integer REFERENCES teams (id) NOT NULL,
+	round_id integer REFERENCES rounds (id) NOT NULL,
+	"home_goals_n" integer, 
+	"away_goals_n" integer
+);
+
+--Create players
+--We assume that the surname of a player cannot be considered as a primary key here.
+--Indeed, it happened in the past that two brothers were playing in the same team
+--E.g. David and Philip Degen, who played for Switzerland in the early 2000s.
+CREATE TABLE players (
+	"id" integer PRIMARY KEY,
+	"surname" varchar(40),
+	"field_position" varchar(40),
+    team_id integer REFERENCES teams (id) NOT NULL
+);
+
+--Create lineups
+CREATE TABLE lineups (
+	match_id integer REFERENCES matches (id) NOT NULL,
+	team_id integer REFERENCES teams (id) NOT NULL,
+	player_id integer REFERENCES players (id) NOT NULL,
+	PRIMARY KEY (match_id, team_id, player_id)
+);
+ 
+--Create goals
+CREATE TABLE goals (
+	"id" integer,
+	"time" time,
+	player_id integer REFERENCES players (id) NOT NULL,
+	match_id integer REFERENCES matches (id) NOT NULL,
+	"type" varchar(40),
+	PRIMARY KEY ("id", match_id, player_id)
+);
+
+--Create cards
+CREATE TABLE cards (
+	"id" integer,
+	"time" time,
+	player_id integer REFERENCES players (id) NOT NULL,
+	match_id integer REFERENCES matches (id) NOT NULL,
+	"type" varchar(40),
+	PRIMARY KEY ("id", match_id, player_id)
+);
+
+--Create substitutes
+CREATE TABLE substitutes (
+	"id" integer,
+	"time" time,
+	player_id integer REFERENCES players (id) NOT NULL,
+	match_id integer REFERENCES matches (id) NOT NULL,
+	"type" varchar(40),
+	PRIMARY KEY ("id", match_id, player_id)
+);
+
+-----------------
+-- Inserting data
+-----------------
+--Here, we will take the example of the Barclay Premier League.
+--We will not insert all data corresponding to the Barclays Premier League season 2018/2019, 
+--but we will insert enough data to go through the exercise.
+
+-- Insert some stadiums
+INSERT INTO stadiums ("id", stadium_name)
+    VALUES
+	(1,'Goldsands Stadium'),
+	(2,'Emirates Stadium'),
+	(3,'AMEX Stadium'),
+	(4,'Turf Moor')
+;
+
+-- Insert some teams
+INSERT INTO teams ("id", club_name, coach_name, stadium_id)
+    VALUES
+		(1, 'AFC Bournemouth', 'Eddie Howe', 1),
+		(2, 'Arsenal', 'Unai Emery', 2),
+		(3, 'Brighton and Hove Albion', 'Graham Potter', 3),
+		(4, 'Burnley', 'Sean Dyche', 4)
+	;
+
+-- Insert some players
+--	Under the attribute "surname", we will not insert real surnames.
+--	Instead, we will use the form "player 1", "player 2" etc for practical reasons.
+--	For simplicity, we also assume that all teams play in 4-3-3.
+--	We assume that all teams have 18 players. 
+INSERT INTO players (team_id, "id", surname, field_position)
+    VALUES (1,1,'Player 1','GK'),
+        	(1,2,'Player 2','RB'),
+        	(1,3,'Player 3','CB'),
+        	(1,4,'Player 4','CB'),
+			(1,5,'Player 5','LB'),
+        	(1,6,'Player 6','CDM'),
+        	(1,7,'Player 7','RM'),
+        	(1,8,'Player 8','LF'),
+			(1,9,'Player 9','ST'),
+        	(1,10,'Player 10','LF'),
+        	(1,11,'Player 11','RF'),
+        	(1,12,'Player 12','GK'), 
+			(1,13,'Player 13','CB'),
+        	(1,14,'Player 14','RB'),
+        	(1,15,'Player 15','LB'),
+        	(1,16,'Player 16','ST'),
+			(1,17,'Player 17','CDM'),
+        	(1,18,'Player 18','LF'),
+			
+			(2,19,'Player 19','GK'),
+        	(2,20,'Player 20','RB'),
+        	(2,21,'Player 21','CB'),
+        	(2,22,'Player 22','CB'),
+			(2,23,'Player 23','LB'),
+        	(2,24,'Player 24','CDM'),
+        	(2,25,'Player 25','RM'),
+        	(2,26,'Player 26','LF'),
+			(2,27,'Player 27','ST'),
+        	(2,28,'Player 28','LF'),
+        	(2,29,'Player 29','RF'),
+        	(2,30,'Player 30','GK'),
+			(2,31,'Player 31','CB'),
+        	(2,32,'Player 32','RB'),
+        	(2,33,'Player 33','LB'),
+        	(2,34,'Player 34','ST'),
+			(2,35,'Player 35','CDM'),
+        	(2,36,'Player 36','LF'),
+			
+			(3,37,'Player 37','GK'),
+        	(3,38,'Player 38','RB'),
+        	(3,39,'Player 39','CB'),
+        	(3,40,'Player 40','CB'),
+			(3,41,'Player 41','LB'),
+        	(3,42,'Player 42','CDM'),
+        	(3,43,'Player 43','RM'),
+        	(3,44,'Player 44','LF'),
+			(3,45,'Player 45','ST'),
+        	(3,46,'Player 46','LF'),
+        	(3,47,'Player 47','RF'),
+        	(3,48,'Player 48','GK'),
+			(3,49,'Player 49','CB'),
+        	(3,50,'Player 50','RB'),
+        	(3,51,'Player 51','LB'),
+        	(3,52,'Player 52','ST'),
+			(3,53,'Player 53','CDM'),
+        	(3,54,'Player 54','LF'),
+			
+        	(4,55,'Player 55','GK'),
+        	(4,56,'Player 56','RB'),
+        	(4,57,'Player 57','CB'),
+        	(4,58,'Player 58','CB'),
+			(4,59,'Player 59','LB'),
+        	(4,60,'Player 60','CDM'),
+        	(4,61,'Player 61','RM'),
+        	(4,62,'Player 62','LF'),
+			(4,63,'Player 63','ST'),
+        	(4,64,'Player 64','LF'),
+        	(4,65,'Player 65','RF'),
+        	(4,66,'Player 66','GK'),
+			(4,67,'Player 67','CB'),
+        	(4,68,'Player 68','RB'),
+        	(4,69,'Player 69','LB'),
+        	(4,70,'Player 70','ST'),
+			(4,71,'Player 71','CDM'),
+        	(4,72,'Player 72','LF')
+;
+	
+-- Insert some rounds
+INSERT INTO rounds (id, name)
+    VALUES (1, 'First day'),
+         	(2, 'Second day')
+;
+
+-- Insert some matches
+INSERT INTO matches (round_id, "id", stadium_id, referee, attendance, "date", "time_kickoff", "time_end", home_team, away_team, home_goals_n, away_goals_n)
+    VALUES
+	    (1, 1, 2, 'Mr.Webb', 12030, '2018-08-10', 'T12:30:00','T14:00:00',2,1,1,4),
+		(1, 2, 3, 'Mr.Kuipers', 4500, '2018-08-010', 'T12:30:00','T14:00:00',3,4,2,3),  
+		(2, 3, 1, 'Mr.Webb', 2400, '2018-08-12', 'T12:30:00','T14:00:00',1,3,0,0),  
+		(2, 4, 4, 'Mr.Collina', 9034, '2018-08-12', 'T12:30:00','T14:00:00',4,2,2,2) 
+;
+		
+-- Insert some lineups
+--  A lineup is made of the 11 players that will start the match of a team.
+INSERT INTO lineups (match_id, team_id, player_id)
+    VALUES
+	    -- Match 1, team 1:
+		(1,1,1),
+		(1,1,2),
+		(1,1,3),
+		(1,1,4),
+		(1,1,5),
+		(1,1,6),
+		(1,1,7),
+		(1,1,8),
+		(1,1,9),
+		(1,1,10),
+		(1,1,11),
+		-- Match 1, team 2:
+		(1,2,19),
+		(1,2,20),
+		(1,2,21),
+		(1,2,22),
+		(1,2,23),
+		(1,2,24),
+		(1,2,25),
+		(1,2,26),
+		(1,2,27),
+		(1,2,28),
+		(1,2,29),
+		-- Match 2, team 3:
+		(2,3,37),
+        (2,3,38),
+        (2,3,39),
+        (2,3,40),
+		(2,3,41),
+        (2,3,42),
+        (2,3,43),
+        (2,3,44),
+		(2,3,45),
+        (2,3,46),
+        (2,3,47),
+		-- Match 2, team 4:
+		(2,4,55),
+        (2,4,56),
+        (2,4,57),
+        (2,4,58),
+		(2,4,59),
+        (2,4,60),
+        (2,4,61),
+        (2,4,62),
+		(2,4,63),
+        (2,4,64),
+        (2,4,65),
+		-- Match 3, team 1:
+		-- Here, note that, compared to the first match of his team, the manager of team 1 changed his GK.
+		(3,1,12),  
+		(3,1,2),
+		(3,1,3),
+		(3,1,4),
+		(3,1,5),
+		(3,1,6),
+		(3,1,7),
+		(3,1,8),
+		(3,1,9),
+		(3,1,10),
+		(3,1,11),
+		-- Match 3, team 3:
+		-- Here, note that, compared to the first round of his team, the manager of team 3 changed his ST.
+		(3,3,37),
+        (3,3,38),
+        (3,3,39),
+        (3,3,40),
+		(3,3,41),
+        (3,3,42),
+        (3,3,43),
+        (3,3,44),
+		(3,3,52),
+        (3,3,46),
+        (3,3,47),
+		-- Match 4, team 2:
+		-- Here, note that, compared to the first match of his team, the manager of team 2 did not make any change.
+		(4,2,19),
+		(4,2,20),
+		(4,2,21),
+		(4,2,22),
+		(4,2,23),
+		(4,2,24),
+		(4,2,25),
+		(4,2,26),
+		(4,2,27),
+		(4,2,28),
+		(4,2,29),
+		-- Match 4, team 4:
+		-- Here, note that, compared to the first match of his team, the manager of team 4 did not make any change.
+		(4,4,55),
+        (4,4,56),
+        (4,4,57),
+        (4,4,58), 
+		(4,4,59),
+        (4,4,60),
+        (4,4,61),
+        (4,4,62),
+		(4,4,63),
+        (4,4,64),
+        (4,4,65)
+;
+
+-- Insert some goals
+INSERT INTO goals ("id", "time", player_id, match_id, "type")
+    VALUES
+		-- Match 1:
+	    (1, 'T12:40:00',4,1,'Goal'),
+		(2, 'T12:44:00',5,1,'Goal'),
+		(3, 'T12:50:00',10,1,'Goal'),
+		(4, 'T12:59:00',10,1,'Goal'),
+		(5, 'T13:40:00',27,1,'Goal'),
+		
+		-- Match 2:  
+	    (6, 'T12:40:01',41,2,'Goal'),
+		(7, 'T12:44:00',46,2,'Goal'),
+		(8, 'T12:50:00',60,2,'Goal'),
+		(9, 'T12:58:00',60,2,'Goal'),
+		(10, 'T13:41:00',60,2,'Goal'),
+		
+		-- Match 3:
+		(11, 'T12:41:00',6,3,'Goal'),
+		(12, 'T12:44:00',9,3,'Goal'),
+		(13, 'T13:45:00',44,3,'Goal'),
+		(14, 'T13:50:00',44,3,'Goal')
+		
+		-- Match 4: no goal 
+;
+
+-- Insert some cards
+INSERT INTO cards ("id", "time", player_id, match_id, "type")
+    VALUES
+		-- Match 1:
+	    (1, 'T12:35:00',6,1,'Yellow Card'),
+		-- Match 4:
+		(2, 'T13:58:00',56,4,'Red Card')
+;		
+		
+-- Insert some substitutes
+-- 	Here, we assume the player that is switched in ("in") and player that is switched out ("out")
+--  are accounted to switch position at the exact same time.
+INSERT INTO substitutes ("id", "time", player_id, match_id, "type")
+    VALUES
+		-- Match 1:
+		(1, 'T13:01:00',13,1,'In'),
+		(2, 'T13:01:00',3,1,'Out'),
+	    (3, 'T13:43:00',16,1,'In'),
+		(4, 'T13:43:00',9,1,'Out'),
+		(5, 'T13:46:00',33,1,'In'),
+		(6, 'T13:46:00',23,1,'Out'),
+		(7, 'T13:55:00',34,1,'In'),
+		(8, 'T13:55:00',27,1,'Out'),
+		-- Match 2:
+		(9, 'T12:45:00',49,2,'In'),
+		(10, 'T12:45:00',40,2,'Out'),
+	    (11, 'T13:11:00',54,2,'In'),	
+		(12, 'T13:11:00',46,2,'Out'),
+		(13, 'T13:51:00',72,2,'In'),
+		(14, 'T13:51:00',63,2,'Out')
+		-- Match 3&4: no substitutes
+;
+ 
+-----------
+-- Queries
+-----------
+
+ --3.1. Which match (date, stadium) of the season had the most spectators?
+SELECT s.stadium_name AS "Stadium", "date" AS "Date"
+      FROM matches m
+	  JOIN stadiums s
+	  on s.id = m.stadium_id
+	  ORDER BY attendance DESC
+	  LIMIT 1
+;
+ 
+ -- 3.2. For each round of the season, display the match (stadium) with the most spectators.
+SELECT m1.round_id, m1.stadium_id, s.stadium_name
+         FROM matches AS m1
+		 JOIN stadiums s
+	  	on s.id = m1.stadium_id
+		 WHERE NOT EXISTS (
+			 SELECT * FROM matches AS m2
+			 WHERE
+			     -- Are there other matches with larger attendance ?
+			     m2.attendance > m1.attendance AND
+			     -- In the same round.
+			     m1.round_id = m2.round_id
+			 )
+; 
+
+--3.3. Which players (name) made the most appearances in the starting line-ups of their teams?
+
+SELECT surname, club_name, COUNT(player_id) 
+FROM players p 
+		JOIN teams t on p.team_id = t.id
+		JOIN lineups l on p.id = l.player_id
+			group by surname, club_name
+HAVING COUNT (player_id)=( 
+SELECT MAX(appearances) 
+FROM (SELECT surname, club_name, COUNT(player_id) as appearances
+FROM players p 
+		JOIN teams t on p.team_id = t.id
+		JOIN lineups l on p.id = l.player_id
+GROUP BY surname, club_name) as beta)
+ORDER BY t.club_name, p.surname
+;
+
+
+--3.4. Find the top 10 players that scored the most goals, ordered in ascending order by goals scored:
+
+SELECT p.surname, count(g.player_id) as goal_n
+		FROM goals g
+  		JOIN players p
+  		on p.id = g.player_id
+		GROUP BY p.surname, g.player_id
+		ORDER BY goal_n DESC
+		LIMIT 10
+;
+
+--3.5. Display a timeline of all match events that occured in a specific match:
+-- 		Here, we take match 1 as an example.
+
+SELECT g.time, p.surname, type FROM goals g 
+	NATURAL JOIN players p WHERE match_id=1
+	UNION
+	SELECT c.time, p.surname, type FROM cards c 
+	NATURAL JOIN players p WHERE match_id=1
+	UNION
+	SELECT s.time, p.surname, type FROM substitutes s 
+	NATURAL JOIN players p WHERE match_id=1
+	ORDER BY time
+; 
+
+--3.6. Display all results in a given round:
+--		Here, we take the example of round 1
+
+SELECT t1.club_name||'-'||t2.club_name as "match", m.home_goals_n||'-'||away_goals_n as "score"
+	FROM matches m
+	JOIN teams t1
+	on m.home_team = t1.id
+	JOIN teams t2
+	on m.away_team= t2.id
+	WHERE m.round_id = 1
+	ORDER BY m.round_id, 
+	m.id
+;
+
+--3.7. Find all teams that lost more matches that they won:
+--Empirically, we know that the code should give us Arsenal & Brighton.
+
+SELECT club_name, win, loss			 					
+FROM (SELECT t.club_name, 
+	SUM(CASE 
+		WHEN m.home_team = t.id and m.home_goals_n > m.away_goals_n THEN 1
+        WHEN m.away_team = t.id and m.home_goals_n < m.away_goals_n THEN 1  
+        ELSE 0  
+        END) as win, 
+    SUM(CASE 
+		WHEN m.home_team = t.id and m.home_goals_n < m.away_goals_n THEN 1  
+        WHEN m.away_team = t.id and m.home_goals_n > m.away_goals_n THEN 1  
+        ELSE 0  
+        END) as loss
+	FROM matches as m 
+   	JOIN teams as t ON m.home_team = t.id or m.away_team = t.id
+	GROUP BY t.club_name) as veta
+	WHERE win < loss
+;
+
+--3.8. Display the league table for all rounds:
+
+SELECT *, (3 * Wins + 1 * Ties) AS Points  
+FROM 
+    (SELECT    t.club_name, COUNT(*) AS GamesPlayed, 
+        SUM(CASE 
+           	WHEN m.home_team = t.id AND m.home_goals_n > m.away_goals_n THEN 1  
+            WHEN m.away_team = t.id AND m.home_goals_n < m.away_goals_n THEN 1  
+			ELSE 0  END) AS Wins,  
+                    SUM(CASE 
+                        WHEN m.home_team = t.id AND m.home_goals_n < m.away_goals_n THEN 1  
+                        WHEN m.away_team = t.id AND m.home_goals_n > m.away_goals_n THEN 1  
+                        ELSE 0 END) AS Losses,  
+                    SUM(CASE 
+                        WHEN m.home_goals_n = m.away_goals_n THEN 1  
+                        ELSE 0 END) AS Ties    
+    FROM        matches as m 
+    JOIN        teams as t ON m.home_team = t.id OR m.away_team = t.id  
+    GROUP BY    t.club_name) AS a 
+	ORDER BY Points DESC  
+;     
+
+-------------
+--Constraints
+-------------
+--See the full comments in the pdf.
+
+--4.1. A match event cannot occur outside the 90 minutes of game play.
+		--The following is not supported by PostgreSQL:
+	alter table goals add check (goals.time < (SELECT m.time_end
+                                       FROM matches m
+                                       WHERE m.id = goals.match_id ));	
+										   
+	alter table goals add check (goals.time > (SELECT m.time_end
+                                       FROM matches m
+                                       WHERE m.id = goals.match_id ));
+		--The same goes for cards and substitutes.
+		--Here, a trigger is required to check this condition. 
+ 
+--4.2. Players cannot be substituted by themselves.
+	alter table substitutes add constraint unique_substitutes unique (match_id, player_id);
+		--This can be verified:				   
+	INSERT INTO substitutes ("id", "time", player_id, match_id, "type")
+   		 VALUES
+			-- Match 1:
+			(40, 'T13:11:00',2,1,'In'),
+			(41, 'T13:11:00',2,1,'Out');
+						 				   
+--4.3. A team cannot play against itself.   
+	SELECT * FROM matches;
+										   					   
+	alter table matches add check (home_team - away_team <> 0);
+		--This can be verified:				   
+	INSERT INTO matches (round_id, "id", stadium_id, referee, attendance, "date", "time_kickoff", "time_end", home_team, away_team, home_goals_n, away_goals_n)
+    VALUES
+	    (1, 40, 2, 'Mr.Webb', 12034, '2018-11-11', 'T12:30:00','T14:00:00',2,2,1,4);						   
+
+--4.4. A team cannot be involved in two matches of the same round.										   						   
+			--The following is not supported by PostgreSQL:
+	alter table matches add constraint team_limit_per_round check 
+		((select count (away_team), round_id, away_team from matches group by round_id,away_team) AND
+		(select count (home_team), round_id, home_team from matches group by round_id,home_team));
+	 									   
+			--another try:
+	alter table matches add constraint unique_home_team_ids unique (home_team, round_id);
+									   
+	alter table matches add constraint unique_away_team_ids unique (away_team, round_id);
+		 
+			--counter-argument, as it is still possible to insert this :							   
+	INSERT INTO matches (round_id, "id", stadium_id, referee, attendance, "date", "time_kickoff", "time_end", home_team, away_team, home_goals_n, away_goals_n)
+   			VALUES
+	(2, 7, 3, 'Mr.Kuipers', 4500, '2018-10-010', 'T12:30:00','T14:00:00',3,1,2,3);	  
+		 
+		 	--Thus, a trigger is required to check this condition. 
+		  
+--4.5. During the 90 minutes of regular game play, each team can do a maximum of 3 substitutions									   
+			--The following is not supported by PostgreSQL:	
+	alter table substitutes add constraint max_substitutes 
+		 check ((SELECT count(match_id) from substitutes)=<12);							   
+
+		 	--Here, a trigger is required to check this condition.
+						 	
+---------------------------------------------------------------------------
